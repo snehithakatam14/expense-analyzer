@@ -1,24 +1,4 @@
-"""
-categorizer.py — OpenAI-powered transaction categorization engine.
-
-Architecture:
-  - Uses the OpenAI ``client.beta.chat.completions.parse()`` endpoint to enforce
-    a Pydantic JSON schema on the model's response (Structured Outputs feature).
-  - This guarantees the API always returns a valid BatchCategorizationResponse —
-    no post-processing regex or JSON repair required.
-  - Processes transactions in configurable batches (default: 20) to reduce API
-    call count while staying within context window limits.
-
-Retry strategy (via tenacity):
-  - Retries on: APITimeoutError, RateLimitError, APIConnectionError
-  - Policy: exponential backoff, min 2s, max 30s, up to max_retries attempts
-  - After all retries exhausted: graceful fallback to TransactionCategory.OTHER
-    with confidence=0.0 so downstream code can still function
-
-Persistence:
-  - CategoryORM records are upserted (insert or update-in-place) so re-running
-    categorization safely overwrites stale results.
-"""
+# Sends transactions to OpenAI in batches, enforces a Pydantic schema, retries on transient errors.
 from __future__ import annotations
 
 import logging

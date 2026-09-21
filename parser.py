@@ -1,26 +1,4 @@
-"""
-parser.py — Transaction data ingestion and normalization engine.
-
-Responsibilities:
-  - Accept raw CSV or JSON transaction data (from files, bytes, or file-like objects)
-  - Resolve column names via alias mapping (handles inconsistent bank export headers)
-  - Parse and validate every field with strict type coercion
-  - Skip malformed rows with per-row logging (never fail silently on individual rows)
-  - Detect and skip exact duplicate transactions via SHA-256 content hashing
-  - Detect file encoding automatically via chardet
-  - Persist de-duplicated NormalizedTransaction records to SQLite
-
-Edge cases handled:
-  - Missing required columns → raises MissingColumnError
-  - Ambiguous / malformed dates → tries 11 date formats, raises DateParseError if all fail
-  - Leading/trailing whitespace on all string fields
-  - Currency symbols ($, €, £) stripped from amount strings
-  - Comma-separated amounts ("1,234.56") normalized
-  - Fully null/empty rows silently skipped
-  - Empty files → raises ParserError
-  - Files with only null rows → raises ParserError
-  - Encoding detection with chardet; falls back to UTF-8 on low confidence
-"""
+# Ingests CSV/JSON transaction data, normalizes fields, deduplicates by SHA-256, persists to DB.
 from __future__ import annotations
 
 import csv

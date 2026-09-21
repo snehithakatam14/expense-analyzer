@@ -1,24 +1,4 @@
-"""
-app.py — Flask REST API for the AI-Powered Financial Expense Analyzer.
-
-Endpoint Reference:
-  GET  /api/v1/health                 — Liveness probe
-  POST /api/v1/upload                 — Upload CSV or JSON transactions
-  POST /api/v1/categorize             — AI-categorize uploaded transactions
-  GET  /api/v1/report                 — Generate monthly expense report
-  GET  /api/v1/anomalies              — Fetch anomalous transactions
-  GET  /api/v1/transactions           — Paginated transaction list
-  GET  /api/v1/periods                — List all months with data
-
-Design decisions:
-  - Blueprint-organized (``api_bp``) so routes are testable in isolation
-  - Application factory pattern (``create_app()``) for clean test setup
-  - All responses share a consistent JSON envelope:
-      { "success": bool, "data": ..., "timestamp": str, "meta"?: {...} }
-  - Error responses: { "success": false, "error": str, "status": int }
-  - Decimal values serialized as strings to preserve precision
-  - File uploads validated by extension BEFORE reading bytes
-"""
+# Flask REST API. All routes are under /api/v1/ via Blueprint.
 from __future__ import annotations
 
 import logging

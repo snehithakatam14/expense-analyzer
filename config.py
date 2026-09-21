@@ -1,10 +1,4 @@
-"""
-config.py — Type-safe environment variable management.
-
-Uses pydantic-settings BaseSettings for automatic .env loading,
-type coercion, and validation. Call get_settings() anywhere to
-get the singleton config object.
-"""
+# Environment config via pydantic-settings. Call get_settings() for the singleton instance.
 from __future__ import annotations
 
 from functools import lru_cache

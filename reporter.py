@@ -1,29 +1,4 @@
-"""
-reporter.py — Budget intelligence, drift analysis, and anomaly detection engine.
-
-Responsibilities:
-  - Query the SQLite DB and aggregate transaction data by period and category
-  - Calculate month-over-month spending drift per category
-  - Detect statistical anomalies via the Z-score method (configurable threshold)
-  - Merge AI-flagged and statistically-flagged anomalies (deduped by transaction_id)
-  - Compute a composite Budget Health Score (0–100)
-  - Cache generated reports as JSON blobs in the reports table
-
-Anomaly Detection:
-  The Z-score method computes the population mean and standard deviation of
-  |amount| for each category across ALL historical data.  Transactions in the
-  current period whose |amount| exceeds (mean + threshold * std) are flagged.
-  Minimum 3 data points required per category for statistical significance.
-
-  AI-flagged anomalies (is_anomaly=True on CategoryORM) are always included
-  regardless of statistical threshold.
-
-Budget Health Score formula (100 pts total):
-  25 pts — Category diversity  (more diverse spending = healthier)
-  25 pts — Drift penalty       (large MoM swings penalised)
-  25 pts — Anomaly penalty     (fewer anomalies = better)
-  25 pts — Categorization rate (% of transactions with an assigned category)
-"""
+# Monthly expense reports: category totals, MoM drift, Z-score anomaly detection, health score.
 from __future__ import annotations
 
 import logging

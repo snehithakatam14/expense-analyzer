@@ -1,17 +1,4 @@
-"""
-database.py — SQLAlchemy engine, session factory, and DB lifecycle helpers.
-
-Provides:
-  - ``engine``        — SQLAlchemy engine (configured from Settings)
-  - ``SessionLocal``  — sessionmaker factory for raw session usage
-  - ``get_db()``      — context manager for safe session lifecycle
-  - ``init_db()``     — create all ORM tables on startup
-
-SQLite pragmas applied at connection time:
-  - WAL journal mode  — concurrent reads without blocking writes
-  - foreign_keys=ON   — enforce referential integrity
-  - synchronous=NORMAL — balanced durability vs. performance
-"""
+# SQLAlchemy engine, session factory, and init helpers. WAL mode enabled for SQLite.
 from __future__ import annotations
 
 import logging

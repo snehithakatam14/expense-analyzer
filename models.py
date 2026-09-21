@@ -1,18 +1,4 @@
-"""
-models.py — Data contracts and ORM definitions.
-
-This module is the single source of truth for ALL data shapes in the system.
-It defines:
-  - SQLAlchemy ORM models  (persisted to SQLite)
-  - Pydantic schemas       (validated Python types flowing between components)
-  - TransactionCategory    (shared Enum across parser, categorizer, reporter, API)
-
-Schema flow:
-  parser.py       → NormalizedTransaction → DB + categorizer.py
-  categorizer.py  → CategoryResponse      → DB + reporter.py
-  reporter.py     → ReportSummary         → app.py (JSON response)
-  OpenAI API      → BatchCategorizationResponse (structured output schema)
-"""
+# ORM models, Pydantic schemas, shared enums. Single source of truth for all data shapes.
 from __future__ import annotations
 
 import hashlib
