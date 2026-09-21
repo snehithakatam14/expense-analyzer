@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Expense Analyzer — Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --danger: #ff5e5e;
+      --warn: #f5a623;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --card-radius: 14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .logo h1 { font-size: 1.15rem; font-weight: 600; }
+    .logo span { font-size: 0.75rem; color: var(--muted); }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 0.78rem; color: var(--muted);
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); }
+    .dot.offline { background: var(--danger); }
+
+    /* ── Period selector ── */
+    .controls {
+      padding: 20px 32px 0;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .controls label { font-size: 0.85rem; color: var(--muted); }
+    .controls select {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 8px 14px;
+      font-size: 0.88rem; cursor: pointer; outline: none;
+    }
+    .controls button {
+      background: var(--accent); border: none; color: #fff;
+      border-radius: 8px; padding: 8px 18px; font-size: 0.88rem;
+      cursor: pointer; transition: opacity .2s;
+    }
+    .controls button:hover { opacity: .85; }
+
+    /* ── Main grid ── */
+    main { padding: 24px 32px 40px; }
+
+    /* Stat cards row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 20px 22px;
+    }
+    .stat-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .stat-card .value { font-size: 1.75rem; font-weight: 700; margin: 6px 0 2px; }
+    .stat-card .sub { font-size: 0.78rem; color: var(--muted); }
+    .stat-card.accent .value { color: var(--accent2); }
+    .stat-card.danger .value { color: var(--danger); }
+    .stat-card.warn  .value { color: var(--warn); }
+
+    /* Health score ring */
+    .health-ring { position: relative; display: inline-block; width: 80px; height: 80px; }
+    .health-ring svg { transform: rotate(-90deg); }
+    .health-ring .ring-val {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.1rem; font-weight: 700;
+    }
+
+    /* Charts row */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px; margin-bottom: 24px;
+    }
+    @media (max-width: 700px) { .charts-row { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--card-radius);
+      padding: 22px;
+    }
+    .card h2 { font-size: 0.88rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 18px; }
+    .chart-wrap { position: relative; height: 240px; }
+
+    /* Transactions table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    thead th {
+      text-align: left; padding: 10px 14px;
+      font-size: 0.73rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,.03); }
+    tbody td { padding: 10px 14px; }
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 20px;
+      font-size: 0.72rem; font-weight: 600;
+    }
+    .badge-food       { background: #1a3a2a; color: #4ade80; }
+    .badge-transport  { background: #1a2a3a; color: #60a5fa; }
+    .badge-shopping   { background: #3a1a3a; color: #c084fc; }
+    .badge-utilities  { background: #3a2a1a; color: #fb923c; }
+    .badge-healthcare { background: #3a1a1a; color: #f87171; }
+    .badge-entertainment { background: #1a1a3a; color: #818cf8; }
+    .badge-income     { background: #1a3a1a; color: #86efac; }
+    .badge-other      { background: #2a2a2a; color: #94a3b8; }
+    .badge-anomaly    { background: #3a1a1a; color: var(--danger); }
+    .amount-neg { color: var(--danger); }
+    .amount-pos { color: var(--accent2); }
+
+    /* Anomalies section */
+    .anomaly-list { display: flex; flex-direction: column; gap: 10px; }
+    .anomaly-item {
+      background: rgba(255,94,94,.07);
+      border: 1px solid rgba(255,94,94,.25);
+      border-radius: 10px; padding: 14px 16px;
+      font-size: 0.85rem;
+    }
+    .anomaly-item .anom-top { display: flex; justify-content: space-between; font-weight: 600; }
+    .anomaly-item .anom-reason { color: var(--muted); font-size: 0.78rem; margin-top: 4px; }
+
+    /* Skeleton loader */
+    .skeleton {
+      background: linear-gradient(90deg, var(--border) 25%, #2f3347 50%, var(--border) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px; height: 20px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .empty { text-align: center; color: var(--muted); padding: 32px; font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">💰</div>
+    <div>
+      <h1>Expense Analyzer</h1>
+      <span>AI-Powered Financial Dashboard</span>
+    </div>
+  </div>
+  <div class="status-pill">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Connecting…</span>
+  </div>
+</header>
+
+<!-- Period selector -->
+<div class="controls">
+  <label for="period-select">Period:</label>
+  <select id="period-select"><option>Loading…</option></select>
+  <button onclick="loadPeriod()">Load Report</button>
+</div>
+
+<!-- Main -->
+<main>
+  <!-- Stat Cards -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="label">Total Spend</div>
+      <div class="value" id="stat-spend">—</div>
+      <div class="sub" id="stat-period-label">Select a period</div>
+    </div>
+    <div class="stat-card accent">
+      <div class="label">Total Income</div>
+      <div class="value" id="stat-income">—</div>
+      <div class="sub" id="stat-net-label">Net: —</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Transactions</div>
+      <div class="value" id="stat-txns">—</div>
+      <div class="sub" id="stat-cat-label">0 categorized</div>
+    </div>
+    <div class="stat-card warn">
+      <div class="label">Anomalies</div>
+      <div class="value" id="stat-anomalies">—</div>
+      <div class="sub">Flagged this period</div>
+    </div>
+    <div class="stat-card" style="display:flex;align-items:center;gap:16px;">
+      <div>
+        <div class="label">Health Score</div>
+        <div class="sub" style="margin-top:4px;" id="health-label">Budget intelligence rating</div>
+      </div>
+      <div class="health-ring">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="8"/>
+          <circle id="health-arc" cx="40" cy="40" r="34" fill="none"
+                  stroke="var(--accent2)" stroke-width="8"
+                  stroke-dasharray="213.6" stroke-dashoffset="213.6"
+                  stroke-linecap="round" style="transition: stroke-dashoffset 1s ease;"/>
+        </svg>
+        <div class="ring-val" id="health-val">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="card">
+      <h2>Spending by Category</h2>
+      <div class="chart-wrap">
+        <canvas id="pieChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Monthly Drift (%)</h2>
+      <div class="chart-wrap">
+        <canvas id="driftChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Anomalies + Transactions -->
+  <div class="charts-row">
+    <div class="card">
+      <h2>⚠️ Anomalies Detected</h2>
+      <div id="anomaly-container" class="anomaly-list">
+        <div class="empty">No anomalies detected.</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Recent Transactions</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th style="text-align:right">Amount</th>
+            </tr>
+          </thead>
+          <tbody id="txn-tbody">
+            <tr><td colspan="4" class="empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const API = '/api/v1';
+  let pieChart = null, driftChart = null;
+
+  const CATEGORY_COLORS = {
+    'Food':          '#4ade80',
+    'Transport':     '#60a5fa',
+    'Shopping':      '#c084fc',
+    'Utilities':     '#fb923c',
+    'Healthcare':    '#f87171',
+    'Entertainment': '#818cf8',
+    'Income':        '#86efac',
+    'Other':         '#94a3b8',
+  };
+
+  const BADGE_CLASS = {
+    'Food': 'badge-food', 'Transport': 'badge-transport',
+    'Shopping': 'badge-shopping', 'Utilities': 'badge-utilities',
+    'Healthcare': 'badge-healthcare', 'Entertainment': 'badge-entertainment',
+    'Income': 'badge-income', 'Other': 'badge-other',
+  };
+
+  /* ── Health endpoint ── */
+  async function checkHealth() {
+    try {
+      const r = await fetch(`${API}/health`);
+      const j = await r.json();
+      if (j.success) {
+        document.getElementById('status-dot').classList.remove('offline');
+        document.getElementById('status-text').textContent = `Online · ${j.data.model}`;
+      }
+    } catch {
+      document.getElementById('status-dot').classList.add('offline');
+      document.getElementById('status-text').textContent = 'Offline';
+    }
+  }
+
+  /* ── Load periods ── */
+  async function loadPeriods() {
+    const r = await fetch(`${API}/periods`);
+    const j = await r.json();
+    const sel = document.getElementById('period-select');
+    sel.innerHTML = '';
+    const periods = j.data?.periods || [];
+    if (periods.length === 0) {
+      sel.innerHTML = '<option value="">No data yet</option>';
+      return;
+    }
+    periods.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      sel.appendChild(opt);
+    });
+    // Auto-load latest
+    loadPeriod();
+  }
+
+  /* ── Load a period ── */
+  async function loadPeriod() {
+    const period = document.getElementById('period-select').value;
+    if (!period) return;
+    const [year, month] = period.split('-');
+
+    // Parallel fetch
+    const [reportRes, anomRes, txnRes] = await Promise.all([
+      fetch(`${API}/report?year=${year}&month=${month}`).then(r => r.json()),
+      fetch(`${API}/anomalies?year=${year}&month=${month}&limit=20`).then(r => r.json()),
+      fetch(`${API}/transactions?year=${year}&month=${month}&per_page=100`).then(r => r.json()),
+    ]);
+
+    if (reportRes.success) renderReport(reportRes.data, period);
+    if (anomRes.success)   renderAnomalies(anomRes.data);
+    if (txnRes.success)    renderTransactions(txnRes.data);
+
+    // Update anomaly stat
+    document.getElementById('stat-anomalies').textContent =
+      anomRes.success ? anomRes.meta.count : '—';
+  }
+
+  /* ── Render report stats + charts ── */
+  function renderReport(data, period) {
+    document.getElementById('stat-spend').textContent   = `₹${parseFloat(data.total_spend).toLocaleString('en-IN', {minimumFractionDigits:2})}`;
+    document.getElementById('stat-income').textContent  = `₹${parseFloat(data.total_income).toLocaleString('en-IN', {minimumFractionDigits:2})}`;
+    document.getElementById('stat-period-label').textContent = period;
+
+    const net = parseFloat(data.net);
+    const netEl = document.getElementById('stat-net-label');
+    netEl.textContent = `Net: ₹${Math.abs(net).toLocaleString('en-IN', {minimumFractionDigits:2})}`;
+    netEl.style.color = net >= 0 ? 'var(--accent2)' : 'var(--danger)';
+
+    document.getElementById('stat-txns').textContent  = data.transaction_count;
+    document.getElementById('stat-cat-label').textContent = `${data.categorized_count} categorized`;
+
+    // Health score ring
+    const score = parseFloat(data.budget_health_score || 0);
+    document.getElementById('health-val').textContent = score.toFixed(0);
+    document.getElementById('health-label').textContent =
+      score >= 75 ? '🟢 Great' : score >= 50 ? '🟡 Fair' : '🔴 Needs attention';
+    const arc = document.getElementById('health-arc');
+    const circumference = 2 * Math.PI * 34;
+    const offset = circumference * (1 - score / 100);
+    arc.setAttribute('stroke-dasharray', circumference);
+    arc.setAttribute('stroke-dashoffset', offset);
+    arc.style.stroke = score >= 75 ? '#4ade80' : score >= 50 ? '#f5a623' : '#ff5e5e';
+
+    // Pie chart
+    const catKeys   = Object.keys(data.by_category);
+    const catVals   = catKeys.map(k => parseFloat(data.by_category[k]));
+    const catColors = catKeys.map(k => CATEGORY_COLORS[k] || '#6c63ff');
+
+    if (pieChart) pieChart.destroy();
+    pieChart = new Chart(document.getElementById('pieChart'), {
+      type: 'doughnut',
+      data: {
+        labels: catKeys,
+        datasets: [{ data: catVals, backgroundColor: catColors, borderWidth: 0, hoverOffset: 6 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#8892a4', font: { size: 11 }, boxWidth: 12, padding: 14 } },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ₹${ctx.parsed.toLocaleString('en-IN', {minimumFractionDigits:2})}`
+            }
+          }
+        },
+        cutout: '62%',
+      }
+    });
+
+    // Drift bar chart
+    const driftKeys = Object.keys(data.monthly_drift);
+    const driftVals = driftKeys.map(k => data.monthly_drift[k]);
+    const driftColors = driftVals.map(v => v >= 0 ? 'rgba(255,94,94,0.75)' : 'rgba(74,222,128,0.75)');
+
+    if (driftChart) driftChart.destroy();
+    driftChart = new Chart(document.getElementById('driftChart'), {
+      type: 'bar',
+      data: {
+        labels: driftKeys,
+        datasets: [{
+          label: 'MoM Change %',
+          data: driftVals,
+          backgroundColor: driftColors,
+          borderRadius: 5,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y > 0 ? '+' : ''}${ctx.parsed.y.toFixed(1)}%` } }
+        },
+        scales: {
+          x: { ticks: { color: '#8892a4' }, grid: { color: 'rgba(255,255,255,.05)' } },
+          y: { ticks: { color: '#8892a4', callback: v => `${v}%` }, grid: { color: 'rgba(255,255,255,.05)' } }
+        }
+      }
+    });
+  }
+
+  /* ── Render anomalies ── */
+  function renderAnomalies(data) {
+    const container = document.getElementById('anomaly-container');
+    if (!data.length) {
+      container.innerHTML = '<div class="empty">✅ No anomalies detected this period.</div>';
+      return;
+    }
+    container.innerHTML = data.map(a => `
+      <div class="anomaly-item">
+        <div class="anom-top">
+          <span>${a.description}</span>
+          <span class="amount-neg">₹${Math.abs(parseFloat(a.amount)).toLocaleString('en-IN', {minimumFractionDigits:2})}</span>
+        </div>
+        <div class="anom-reason">${a.anomaly_reason || 'Flagged by AI'} · ${a.date}</div>
+      </div>
+    `).join('');
+  }
+
+  /* ── Render transactions table ── */
+  function renderTransactions(data) {
+    const tbody = document.getElementById('txn-tbody');
+    if (!data.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty">No transactions found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.slice(0, 15).map(t => {
+      const amt   = parseFloat(t.amount);
+      const amtCls = amt >= 0 ? 'amount-pos' : 'amount-neg';
+      const amtStr = `${amt >= 0 ? '+' : '-'}₹${Math.abs(amt).toLocaleString('en-IN', {minimumFractionDigits:2})}`;
+      const cat   = t.category?.name || 'Other';
+      const badge = BADGE_CLASS[cat] || 'badge-other';
+      const isAnom = t.category?.is_anomaly ? '⚠️ ' : '';
+      return `
+        <tr>
+          <td style="color:var(--muted)">${t.date}</td>
+          <td>${isAnom}${t.description}</td>
+          <td><span class="badge ${badge}">${cat}</span></td>
+          <td class="${amtCls}" style="text-align:right;font-weight:600">${amtStr}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  /* ── Boot ── */
+  checkHealth();
+  loadPeriods();
+</script>
+</body>
+</html>
